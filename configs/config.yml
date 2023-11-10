@@ -1,0 +1,14 @@
+http:
+  proto: "http"
+  # "0.0.0.0"
+  listen_addr: "0.0.0.0"
+  port: 3000
+dns_client:
+  dsn: "8.8.4.4:53"
+database:
+  dsn: "mongodb://localhost:27017/?replicaSet=rs0"
+  db_name: "reverse_dns"
+  collections:
+    dns_record: "dns_record"
+    dns_record_lifetime: "dns_record_lifetime"
+    dns_non_historical: "dns_non_historical"

@@ -1,0 +1,56 @@
+// Get fqdns by ip
+db.dns_record.aggregate([
+    {
+        $lookup: {
+            from: "dns_record_lifetime",
+            localField: "_id",
+            foreignField: "dns_id",
+            as: "dns_record_lifetime"
+        }
+    },
+    { 
+        $unwind: "$dns_record_lifetime"
+    },
+    {
+        $lookup: {
+        from: "dns_non_historical",
+        let: { dns_record_lifetime_id: "$dns_record_lifetime._id" },
+        pipeline: [
+          { 
+            $match: { 
+              $expr: { $eq: ["$$dns_record_lifetime_id", "$dns_record_lifetime_id"] }
+            } 
+          },
+          { $limit: 1 }
+        ],
+        as: "dns_non_historical"
+      }
+    },
+    { 
+        $match: { 
+            dns_non_historical: [],
+        } 
+    },
+    { 
+        $unset: "dns_non_historical" 
+    },
+    { 
+        $match: { 
+            "a": "108.177.14.138"
+        } 
+    },
+    {
+        $project: {
+          _id: 0,
+          "a": 1,
+          "fqdn": 1,
+          //"created_at": "$dns_record_lifetime.created_at",
+          //"expired_at": "$dns_record_lifetime.expired_at",
+        }
+    }
+])
+RESULT:
+[
+  { a: '108.177.14.138', fqdn: 'google.com.' },
+  { a: '108.177.14.138', fqdn: 'thinkwithgoogle.com.' }
+]

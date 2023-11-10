@@ -1,0 +1,188 @@
+////// USE CASE 
+//// 1. Retrieve DNS data from the database that needs to be updated.
+// Find all historical records by date
+///
+GetDataRequiringUpdate()
+/// ~1 sec
+// faster?
+db.dns_record_lifetime.aggregate([
+    {
+        $lookup: {
+            from: "dns_non_historical",
+            localField: "_id",
+            foreignField: "dns_record_lifetime_id",
+            as: "dns_non_historical"
+        }
+    },
+    {
+        $lookup: {
+            from: "dns_record",
+            localField: "dns_id",
+            foreignField: "_id",
+            as: "dns_record"
+        }
+    },
+    { 
+        $unwind: "$dns_record"
+    },
+    { 
+        $match: { 
+            dns_non_historical: [],
+            expired_at: { $lte: new ISODate("2024-11-07T12:50:27.907+00:00"), $gt: new ISODate("2023-11-07T12:50:27.907+00:00") } // date
+        } 
+    },
+    {
+        $unset: "dns_non_historical" 
+    },
+    { $group: {_id: null, fqdn: {$addToSet: "$dns_record.fqdn"}}},
+    { $unwind: "$fqdn" },
+    {
+        $project: {
+            _id: 0,
+            fqdn: "$fqdn"
+        }
+    }
+])
+
+// Сначала $match: {  dns_non_historical: [], 
+db.dns_record_lifetime.aggregate([
+    {
+        $lookup: {
+            from: "dns_non_historical",
+            localField: "_id",
+            foreignField: "dns_record_lifetime_id",
+            as: "dns_non_historical"
+        }
+    },
+    { 
+        $match: { 
+            dns_non_historical: [],
+        } 
+    },
+    {
+        $unset: "dns_non_historical" 
+    },
+    {
+        $lookup: {
+            from: "dns_record",
+            localField: "dns_id",
+            foreignField: "_id",
+            as: "dns_record"
+        }
+    },
+    { 
+        $unwind: "$dns_record"
+    },
+    { 
+        $match: { 
+            expired_at: { $lte: new ISODate("2024-11-07T12:50:27.907+00:00") } // date
+        } 
+    },
+    { $group: {_id: null, fqdn: {$addToSet: "$dns_record.fqdn"}}},
+    { $unwind: "$fqdn" },
+    {
+        $project: {
+            _id: 0,
+            fqdn: "$fqdn"
+        }
+    }
+])
+
+// Проверить!
+// Another check for not exist.
+db.dns_record_lifetime.aggregate([
+    {
+        $lookup: {
+            from: "dns_non_historical",
+            localField: "_id",
+            foreignField: "dns_record_lifetime_id",
+            as: "dns_non_historical"
+        }
+    },
+    {
+        $lookup: {
+            from: "dns_record",
+            localField: "dns_id",
+            foreignField: "_id",
+            as: "dns_record"
+        }
+    },
+    { 
+        $unwind: "$dns_record"
+    },
+      
+    { 
+        $match: { 
+            "dns_non_historical.dns_record_lifetime_id": {
+                "$exists": false
+              },
+            // dns_non_historical: [],
+            expired_at: { $lte: new ISODate("2024-11-07T12:50:27.907+00:00") } // date
+        } 
+    },
+    {
+        $unset: "dns_non_historical" 
+    },
+    { $group: {_id: null, fqdn: {$addToSet: "$dns_record.fqdn"}}},
+    { $unwind: "$fqdn" },
+    {
+        $project: {
+            _id: 0,
+            fqdn: "$fqdn"
+        }
+    }
+])
+
+
+// slower?
+db.dns_record.aggregate([
+    {
+        $lookup: {
+            from: "dns_record_lifetime",
+            localField: "_id",
+            foreignField: "dns_id",
+            as: "dns_record_lifetime"
+        }
+    },
+    { 
+        $unwind: "$dns_record_lifetime"
+    },
+    {
+        $lookup: {
+        from: "dns_non_historical",
+        let: { dns_record_lifetime_id: "$dns_record_lifetime._id" },
+        pipeline: [
+          { 
+            $match: { 
+              $expr: { $eq: ["$$dns_record_lifetime_id", "$dns_record_lifetime_id"] }
+            } 
+          },
+          { $limit: 1 }
+        ],
+        as: "dns_non_historical"
+      }
+    },
+    {
+        $match: {
+            dns_non_historical: [],
+            "dns_record_lifetime.expired_at": { $lte: new ISODate("2024-11-07T12:50:27.907+00:00") }
+        }
+    },
+    {
+        $unset: "dns_non_historical"
+    },
+    { $group: {_id: null, fqdn: {$addToSet: "$fqdn"}}},
+    { $unwind: "$fqdn" },
+    {
+        $project: {
+            _id: 0,
+            // dns_record_lifetime_id: "$dns_record_lifetime._id",
+            fqdn: "$fqdn"
+        }
+    }
+  ])
+
+
+
+RESULT:
+[ { fqdn: 'qq.com.' } ]

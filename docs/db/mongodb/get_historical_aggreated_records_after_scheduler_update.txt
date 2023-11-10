@@ -1,0 +1,149 @@
+m3ik@SHIZUKA-PC-LINUX:~$ mongosh 
+Current Mongosh Log ID: 65469771d9943bb228e29ece
+Connecting to:          mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.0.2
+Using MongoDB:          7.0.2
+Using Mongosh:          2.0.2
+
+For mongosh info see: https://docs.mongodb.com/mongodb-shell/
+
+
+To help improve our products, anonymous usage data is collected and sent to MongoDB periodically (https://www.mongodb.com/legal/privacy-policy).
+You can opt-out by running the disableTelemetry() command.
+
+------
+   The server generated these startup warnings when booting
+   2023-11-04T21:49:58.393+03:00: Using the XFS filesystem is strongly recommended with the WiredTiger storage engine. See http://dochub.mongodb.org/core/prodnotes-filesystem
+   2023-11-04T21:49:59.242+03:00: Access control is not enabled for the database. Read and write access to data and configuration is unrestricted
+   2023-11-04T21:49:59.242+03:00: vm.max_map_count is too low
+------
+
+rs0 [direct: primary] test> use reverse_dns
+switched to db reverse_dns
+rs0 [direct: primary] reverse_dns> db.dns_record_lifetime.aggregate([
+...     {
+...         $lookup: {
+...             from: "dns_non_historical",
+...             localField: "_id",
+...             foreignField: "dns_record_lifetime_id",
+...             as: "dns_non_historical"
+...         }
+...     },
+...     {
+...         $lookup: {
+...             from: "dns_record",
+...             localField: "dns_id",
+...             foreignField: "_id",
+...             as: "dns_record"
+...         }
+...     },
+...     { 
+...         $unwind: "$dns_record"
+...     },
+...     { 
+...         $match: { 
+...             dns_non_historical: [],
+...         } 
+...     },
+...     { 
+...         $unset: "dns_non_historical" 
+...     },
+...     {
+...         $project: {
+...           _id: 1,
+...           a: "$dns_record.a",
+...           fqdn: "$dns_record.fqdn",
+...           "created_at": 1,
+...           "expired_at": 1,
+...         }
+...     }
+...   ])
+[
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd58"),
+    created_at: ISODate("2023-11-04T19:27:23.814Z"),
+    expired_at: ISODate("2023-11-04T19:46:41.814Z"),
+    a: '98.137.11.163',
+    fqdn: 'yahoo.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd59"),
+    created_at: ISODate("2023-11-04T19:27:23.814Z"),
+    expired_at: ISODate("2023-11-04T19:46:41.814Z"),
+    a: '98.137.11.164',
+    fqdn: 'yahoo.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd5a"),
+    created_at: ISODate("2023-11-04T19:27:23.814Z"),
+    expired_at: ISODate("2023-11-04T19:46:41.814Z"),
+    a: '74.6.143.25',
+    fqdn: 'yahoo.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd5b"),
+    created_at: ISODate("2023-11-04T19:27:23.814Z"),
+    expired_at: ISODate("2023-11-04T19:46:41.814Z"),
+    a: '74.6.231.20',
+    fqdn: 'yahoo.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd5c"),
+    created_at: ISODate("2023-11-04T19:27:23.814Z"),
+    expired_at: ISODate("2023-11-04T19:46:41.814Z"),
+    a: '74.6.143.26',
+    fqdn: 'yahoo.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd5f"),
+    created_at: ISODate("2023-11-04T19:27:23.834Z"),
+    expired_at: ISODate("2023-11-04T19:30:10.834Z"),
+    a: '110.242.68.66',
+    fqdn: 'baidu.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd60"),
+    created_at: ISODate("2023-11-04T19:27:23.834Z"),
+    expired_at: ISODate("2023-11-04T19:30:10.834Z"),
+    a: '39.156.66.10',
+    fqdn: 'baidu.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd63"),
+    created_at: ISODate("2023-11-04T19:27:23.839Z"),
+    expired_at: ISODate("2023-11-04T19:32:23.839Z"),
+    a: '59.82.122.115',
+    fqdn: 'taobao.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd64"),
+    created_at: ISODate("2023-11-04T19:27:23.839Z"),
+    expired_at: ISODate("2023-11-04T19:32:23.839Z"),
+    a: '106.11.226.158',
+    fqdn: 'taobao.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd68"),
+    created_at: ISODate("2023-11-04T19:27:23.860Z"),
+    expired_at: ISODate("2023-11-04T19:29:43.860Z"),
+    a: '203.205.254.157',
+    fqdn: 'qq.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd69"),
+    created_at: ISODate("2023-11-04T19:27:23.860Z"),
+    expired_at: ISODate("2023-11-04T19:29:43.860Z"),
+    a: '123.150.76.218',
+    fqdn: 'qq.com.'
+  },
+  {
+    _id: ObjectId("65469b1b51c9927316d1cd6a"),
+    created_at: ISODate("2023-11-04T19:27:23.860Z"),
+    expired_at: ISODate("2023-11-04T19:29:43.860Z"),
+    a: '113.108.81.189',
+    fqdn: 'qq.com.'
+  }
+]
+rs0 [direct: primary] reverse_dns> 
+
+
+31 - запись

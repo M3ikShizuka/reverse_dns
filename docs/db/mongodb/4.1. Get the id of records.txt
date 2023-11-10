@@ -1,0 +1,162 @@
+//// 4.1. Get the id of records that are out of date and will be marked as non historical.
+// Search all historical records by expired_at and FQDN
+
+// RETURN several objects with same FQDN by operation start date.
+
+// ~1 sec
+db.dns_record_lifetime.aggregate([
+    {
+        $lookup: {
+            from: "dns_non_historical",
+            localField: "_id",
+            foreignField: "dns_record_lifetime_id",
+            as: "dns_non_historical"
+        }
+    },
+    {
+        $lookup: {
+            from: "dns_record",
+            localField: "dns_id",
+            foreignField: "_id",
+            as: "dns_record"
+        }
+    },
+    { 
+        $unwind: "$dns_record"
+    },
+    { 
+        $match: { 
+            dns_non_historical: [],
+            "dns_record.fqdn": "qq.com.",
+            expired_at: { $lte: new ISODate("2024-11-07T12:50:27.907+00:00") } // date
+        } 
+    },
+    { 
+        $unset: "dns_non_historical" 
+    },
+    {
+        $project: {
+            _id: 1,
+            fqdn: "$dns_record.fqdn",
+            a: "$dns_record.a"
+        }
+    }
+  ])
+RESULT:
+[
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05af"),
+      fqdn: 'google.com.',
+      a: '142.250.150.101'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05b0"),
+      fqdn: 'google.com.',
+      a: '142.250.150.138'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05b1"),
+      fqdn: 'google.com.',
+      a: '142.250.150.100'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05b2"),
+      fqdn: 'google.com.',
+      a: '142.250.150.113'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05b3"),
+      fqdn: 'google.com.',
+      a: '142.250.150.102'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05b4"),
+      fqdn: 'google.com.',
+      a: '142.250.150.139'
+    }
+  ]
+  
+
+// new faster
+db.dns_record.aggregate([
+    {
+        $lookup: {
+            from: "dns_record_lifetime",
+            localField: "_id",
+            foreignField: "dns_id",
+            as: "dns_record_lifetime"
+        }
+    },
+    { 
+        $unwind: "$dns_record_lifetime"
+    },
+    {
+        $lookup: {
+        from: "dns_non_historical",
+        let: { dns_record_lifetime_id: "$dns_record_lifetime._id" },
+        pipeline: [
+          { 
+            $match: { 
+              $expr: { $eq: ["$$dns_record_lifetime_id", "$dns_record_lifetime_id"] }
+            } 
+          },
+          { $limit: 1 }
+        ],
+        as: "dns_non_historical"
+      }
+    },
+    {
+        $match: { 
+            dns_non_historical: [],
+            "fqdn": "qq.com.",
+            "dns_record_lifetime.created_at": { $lt: new ISODate("2024-11-07T12:50:27.907+00:00") } // date
+        } 
+    },
+    { 
+        $unset: "dns_non_historical" 
+    },
+    {
+        $project: {
+            _id: 0,
+            dns_record_lifetime_id: "$dns_record_lifetime._id",
+            a: 1,
+            fqdn: 1,
+            created_at: "$dns_record_lifetime.created_at",
+            expired_at: "$dns_record_lifetime.expired_at",
+        }
+    }
+])
+RESULT:
+[
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05a4"),
+      a: '142.250.150.101',
+      fqdn: 'google.com.'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05a7"),
+      a: '142.250.150.138',
+      fqdn: 'google.com.'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05ab"),
+      a: '142.250.150.100',
+      fqdn: 'google.com.'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05ac"),
+      a: '142.250.150.113',
+      fqdn: 'google.com.'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05ad"),
+      a: '142.250.150.102',
+      fqdn: 'google.com.'
+    },
+    {
+      _id: ObjectId("654a3148bd0e80476bcb05ae"),
+      a: '142.250.150.139',
+      fqdn: 'google.com.'
+    }
+  ]
+  

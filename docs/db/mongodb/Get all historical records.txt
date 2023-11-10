@@ -1,0 +1,72 @@
+// Get all historical records by FQDN. Comment fqdn for get all historical.
+db.dns_record.aggregate([
+    {
+        $lookup: {
+            from: "dns_record_lifetime",
+            localField: "_id",
+            foreignField: "dns_id",
+            as: "dns_record_lifetime"
+        }
+    },
+    { 
+        $unwind: "$dns_record_lifetime"
+    },
+    {
+        $lookup: {
+        from: "dns_non_historical",
+        let: { dns_record_lifetime_id: "$dns_record_lifetime._id" },
+        pipeline: [
+          { 
+            $match: { 
+              $expr: { $eq: ["$$dns_record_lifetime_id", "$dns_record_lifetime_id"] }
+            } 
+          },
+          { $limit: 1 }
+        ],
+        as: "dns_non_historical"
+      }
+    },
+    {
+        $match: { 
+            dns_non_historical: [],
+            "fqdn": "qq.com.", // comment this for get all
+        } 
+    },
+    { 
+        $unset: "dns_non_historical" 
+    },
+    {
+        $project: {
+            _id: 0,
+            dns_record_lifetime_id: "$dns_record_lifetime._id",
+            a: 1,
+            fqdn: 1,
+            created_at: "$dns_record_lifetime.created_at",
+            expired_at: "$dns_record_lifetime.expired_at",
+        }
+    }
+])
+RESULT:
+[
+  {
+    a: '123.150.76.218',
+    fqdn: 'qq.com.',
+    dns_record_lifetime_id: ObjectId("654bcbd18f3dc84a7521db0e"),
+    created_at: ISODate("2023-11-08T17:56:33.097Z"),
+    expired_at: ISODate("2023-11-08T18:06:33.097Z")
+  },
+  {
+    a: '113.108.81.189',
+    fqdn: 'qq.com.',
+    dns_record_lifetime_id: ObjectId("654bcbd18f3dc84a7521db0c"),
+    created_at: ISODate("2023-11-08T17:56:33.097Z"),
+    expired_at: ISODate("2023-11-08T18:06:33.097Z")
+  },
+  {
+    a: '203.205.254.157',
+    fqdn: 'qq.com.',
+    dns_record_lifetime_id: ObjectId("654bcbd18f3dc84a7521db0d"),
+    created_at: ISODate("2023-11-08T17:56:33.097Z"),
+    expired_at: ISODate("2023-11-08T18:06:33.097Z")
+  }
+]
